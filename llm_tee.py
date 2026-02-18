@@ -78,18 +78,14 @@ def get_next_client(app):
 
 
 async def block_service_response(
-    client: httpx.AsyncClient, endpoint: str, req_data: dict, req_id: str
+    client: httpx.AsyncClient, endpoint: str, req_data: dict, req_headers: dict
 ):
     """
     Send a request to a service using a client from the pool.
     """
-    headers = {
-        "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
-        "X-Request-Id": req_id,
-    }
 
     response = await client.post(
-        endpoint, json=req_data, headers=headers
+        endpoint, json=req_data, headers=req_headers
     )
     response.raise_for_status()
 
@@ -104,18 +100,14 @@ async def block_service_response(
 
 
 async def stream_service_response(
-    client: httpx.AsyncClient, endpoint: str, req_data: dict, req_id: str
+    client: httpx.AsyncClient, endpoint: str, req_data: dict, req_headers: dict
 ):
     """
     Asynchronously stream response from a service using a client from the pool.
     """
-    headers = {
-        "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
-        "X-Request-Id": req_id,
-    }
 
     async with client.stream(
-        "POST", endpoint, json=req_data, headers=headers
+        "POST", endpoint, json=req_data, headers=req_headers
     ) as response:
         response.raise_for_status()
         async for chunk in response.aiter_bytes():
@@ -125,7 +117,9 @@ async def stream_service_response(
 async def _handle_completions(api: str, request: Request):
     try:
         req_data = await request.json()
-        req_id = str(uuid.uuid4())
+        req_headers = {
+            "Authorization": request.headers.get('authorization', '')
+        }
 
         client_info = get_next_client(request.app)
 
@@ -135,13 +129,13 @@ async def _handle_completions(api: str, request: Request):
         if req_data.get('stream', False):
             async def generate_stream():
                 async for chunk in stream_service_response(
-                    client_info["client"], api, req_data, req_id
+                    client_info["client"], api, req_data, req_headers
                 ):
                     yield chunk
 
             return StreamingResponse(generate_stream(), media_type="application/json")
         else:
-            return await block_service_response(client_info["client"], api, req_data, req_id)
+            return await block_service_response(client_info["client"], api, req_data, req_headers)
 
     except Exception as e:
         import sys
