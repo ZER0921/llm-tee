@@ -64,6 +64,8 @@ def parse_args():
         default=["http://localhost:8100"],
     )
 
+    parser.add_argument("--force-block", action='store_true', default=False)
+
     args = parser.parse_args()
 
     return args
@@ -126,6 +128,9 @@ async def _handle_completions(api: str, request: Request):
         req_id = str(uuid.uuid4())
 
         client_info = get_next_client(request.app)
+
+        if global_args.force_block:
+            req_data['stream'] = False
 
         if req_data.get('stream', False):
             async def generate_stream():
