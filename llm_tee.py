@@ -11,9 +11,6 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -106,12 +103,17 @@ async def stream_service_response(
     Asynchronously stream response from a service using a client from the pool.
     """
 
+    print(f'\n-------- Request --------\n{req_data}')
     async with client.stream(
         "POST", endpoint, json=req_data, headers=req_headers
     ) as response:
         response.raise_for_status()
+        text = ''
         async for chunk in response.aiter_bytes():
             yield chunk
+            text += chunk.decode('utf-8')
+        else:
+            print(f'\n-------- Response --------\n{text}')
 
 
 async def _handle_completions(api: str, request: Request):
