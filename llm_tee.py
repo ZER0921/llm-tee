@@ -6,6 +6,7 @@ import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
+from pprint import pprint
 
 import httpx
 from fastapi import FastAPI, Request
@@ -50,15 +51,15 @@ app = FastAPI(lifespan=lifespan)
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--host", type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=80)
 
     parser.add_argument(
         "--llm-endpoints",
         "--llm-endpoint",
         type=str,
         nargs="+",
-        default=["http://localhost:8100"],
+        default=["http://localhost:8000"],
     )
 
     parser.add_argument("--force-block", action='store_true', default=False)
@@ -103,7 +104,6 @@ async def stream_service_response(
     Asynchronously stream response from a service using a client from the pool.
     """
 
-    print(f'\n-------- Request --------\n{req_data}')
     async with client.stream(
         "POST", endpoint, json=req_data, headers=req_headers
     ) as response:
@@ -113,7 +113,10 @@ async def stream_service_response(
             yield chunk
             text += chunk.decode('utf-8')
         else:
-            print(f'\n-------- Response --------\n{text}')
+            print('-------- Request --------')
+            pprint(req_data)
+            print('-------- Response --------')
+            print(text)
 
 
 async def _handle_completions(api: str, request: Request):
