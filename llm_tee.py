@@ -2,6 +2,7 @@
 
 import argparse
 import itertools
+import json
 import logging
 import os
 import uuid
@@ -117,6 +118,14 @@ async def stream_service_response(
             pprint(req_data)
             print('-------- Response --------')
             print(text)
+            for line in text.split('\n'):
+                if not line or not line.startswith('data: '):
+                    continue
+                try:
+                    pprint(json.loads(line[6:]))
+                    print()
+                except:
+                    pass
 
 
 async def _handle_completions(api: str, request: Request):
