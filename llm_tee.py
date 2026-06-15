@@ -3,11 +3,7 @@
 import argparse
 import itertools
 import json
-import logging
-import os
-import uuid
 from contextlib import asynccontextmanager
-from pprint import pprint
 
 import httpx
 from fastapi import FastAPI, Request
@@ -52,18 +48,26 @@ app = FastAPI(lifespan=lifespan)
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--host", type=str, default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=80)
+    parser.add_argument("--host",
+                        type=str,
+                        default="127.0.0.1",
+                        help="serving host (default: %(default)s)")
+    parser.add_argument("--port",
+                        type=int,
+                        default=80,
+                        help="serving port (default: %(default)s)")
 
-    parser.add_argument(
-        "--llm-endpoints",
-        "--llm-endpoint",
-        type=str,
-        nargs="+",
-        default=["http://localhost:8000"],
-    )
+    parser.add_argument("--llm-endpoints",
+                        "--llm-endpoint",
+                        type=str,
+                        nargs="+",
+                        default=["http://localhost:8000"],
+                        help="target endpoint(s) (default: %(default)s)")
 
-    parser.add_argument("--force-block", action='store_true', default=False)
+    parser.add_argument("--force-block",
+                        action='store_true',
+                        default=False,
+                        help="forcing block serving (default: %(default)s)")
 
     args = parser.parse_args()
 
@@ -92,10 +96,15 @@ async def block_service_response(
     # otherwise, it would http.ReadError
     await response.aread()
 
-    response_json = response.json()
+    resp_json = response.json()
     await response.aclose()  # CRITICAL: Release connection back to pool
 
-    return response_json
+    print('\n-------- Request --------')
+    print(json.dumps(req_data, indent=2, ensure_ascii=False, default=str))
+    print('-------- Response --------')
+    print(json.dumps(resp_json, indent=2, ensure_ascii=False, default=str))
+    print()
+    return resp_json
 
 
 async def stream_service_response(
@@ -114,18 +123,10 @@ async def stream_service_response(
             yield chunk
             text += chunk.decode('utf-8')
         else:
-            print('-------- Request --------')
-            pprint(req_data)
+            print('\n-------- Request --------')
+            print(json.dumps(req_data, indent=2, ensure_ascii=False, default=str))
             print('-------- Response --------')
             print(text)
-            for line in text.split('\n'):
-                if not line or not line.startswith('data: '):
-                    continue
-                try:
-                    pprint(json.loads(line[6:]))
-                    print()
-                except:
-                    pass
 
 
 async def _handle_completions(api: str, request: Request):
