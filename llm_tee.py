@@ -7,7 +7,6 @@ import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
-from pprint import pprint
 
 import httpx
 from fastapi import FastAPI, Request
@@ -104,9 +103,9 @@ async def block_service_response(
     await response.aclose()  # CRITICAL: Release connection back to pool
 
     print('\n-------- Request --------')
-    pprint(req_data)
+    print(json.dumps(req_data, indent=2, ensure_ascii=False, default=str))
     print('-------- Response --------')
-    pprint(resp_json)
+    print(json.dumps(resp_json, indent=2, ensure_ascii=False, default=str))
     print()
     return resp_json
 
@@ -127,18 +126,10 @@ async def stream_service_response(
             yield chunk
             text += chunk.decode('utf-8')
         else:
-            print('-------- Request --------')
-            pprint(req_data)
+            print('\n-------- Request --------')
+            print(json.dumps(req_data, indent=2, ensure_ascii=False, default=str))
             print('-------- Response --------')
             print(text)
-            for line in text.split('\n'):
-                if not line or not line.startswith('data: '):
-                    continue
-                try:
-                    pprint(json.loads(line[6:]))
-                    print()
-                except:
-                    pass
 
 
 async def _handle_completions(api: str, request: Request):
