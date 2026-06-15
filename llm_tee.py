@@ -3,9 +3,6 @@
 import argparse
 import itertools
 import json
-import logging
-import os
-import uuid
 from contextlib import asynccontextmanager
 
 import httpx
